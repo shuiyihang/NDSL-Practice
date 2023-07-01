@@ -1,3 +1,0 @@
-keyB valB
-keyC valC
-keyD valA

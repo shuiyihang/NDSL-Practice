@@ -62,11 +62,12 @@ int set_key(char* argv[])
         return -1;
     }
 
-    FILE* fp = fopen(FILENAME,"r+");
+    FILE* fp = fopen(FILENAME,"a+");
     if(fp == NULL)
     {
         return -2;
     }
+    fseek(fp,0L,SEEK_SET);
 
     char* remain;
     while (fgets(buff,1024,fp) != NULL)

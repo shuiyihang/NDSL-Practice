@@ -1,16 +1,6 @@
-键值对是在文本文件中存放的
-什么是键值对：字符串对应关系
-
 getopt 和 readline的用法
 
 键值对的格式
-
-
-make文件和
-
-测试文件(脚本)
-
-gdb调试
 
 
 
@@ -26,10 +16,6 @@ exit
 -q keyA     查询键值对<不存在的情况>
 -d keyA     删除键值对
 
-mykey 无参数进入命令行
-mykey 有参数进入交互界面
-
-gcc -o cmdline cmdline.c -lreadline
 
 
 
