@@ -1,0 +1,3 @@
+set(LIB_BPLUSTREE_SRC bplusTree.c)
+
+add_library(${LIB_BPLUSTREE_NAME} SHARED ${LIB_BPLUSTREE_SRC})
