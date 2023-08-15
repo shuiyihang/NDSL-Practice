@@ -38,6 +38,7 @@ static struct bplus_leaf *leaf_new(int order)
     list_init(&node->link);
     node->type = BPLUS_LEAF;
     node->parent_key_idx = -1;
+    node->parent = NULL;
     node->items = (kv_t *)((char*)node + items_offset);
     return node;
 }
@@ -947,5 +948,206 @@ void print_list(struct bplus_tree *tree)
         node = node->next;
     }
     
-    printf("\n");
+    printf("\n\n");
+}
+
+
+int str_2_int(char *str)
+{
+    int len = strlen(str);
+    int sum = 0;
+    int i = 0;
+    int elem;
+    char flag = 0;
+    while (i < len)
+    {
+        if(*(str+i) < '0' || *(str+i) > '9'){
+            if(*(str+i) == '-'){
+                flag = 1;
+                i++;
+                continue;
+            }else{
+                sum = 0;
+                break;
+            }
+        }else{
+            elem = *(str+i) - '0';
+            sum *= 10;
+            sum += elem;
+        }
+        i++;
+    }
+    return flag?-sum:sum;
+}
+
+void serialize(struct bplus_tree *tree,FILE *fp)
+{
+    // 层次遍历序列化
+    if(!tree)return;
+    if(!fp) fp = stderr;
+    struct bplus_node *node = tree->root;
+    linkQueue queue;
+
+    fprintf(fp,"%d\n",tree->order);// 第一行记录阶数
+
+    queue_init(&queue);
+    queue_push(&queue,&node->q_node);
+    while (!queue_isEmpty(&queue))
+    {
+        node = list_entry(queue_pop(&queue),struct bplus_node,q_node);
+        if(node->type == BPLUS_LEAF){
+            struct bplus_leaf *leaf = (struct bplus_leaf *)node;
+            fprintf(fp,"0,");// BPLUS_LEAF
+            int i;
+            for(i = 0;i < leaf->kv_nums - 1;i++){
+                fprintf(fp,"%d:%s,",leaf->items[i].id,leaf->items[i].name);
+            }
+            fprintf(fp,"%d:%s\n",leaf->items[i].id,leaf->items[i].name);
+        }else{
+            struct bplus_non_leaf *non_leaf = (struct bplus_non_leaf *)node;
+            fprintf(fp,"1,");
+            int i;
+            for(i = 0;i < non_leaf->elem_nums - 2;i++){
+                fprintf(fp,"%d,",non_leaf->key[i]);
+            }
+            fprintf(fp,"%d\n",non_leaf->key[i]);
+            for(int i = 0;i < non_leaf->elem_nums;i++){
+                queue_push(&queue,&non_leaf->ptr[i]->q_node);
+            }
+        }
+    }
+    
+    
+}
+
+
+int analy_next_line(FILE *fp,char *word[WORD_LEN], char buff[STLEN])
+{
+    char *tmp;
+    
+    char* remain;
+
+    int idx = 0;
+    if(fgets(buff,STLEN,fp) != NULL)// 未到文件尾部
+    {
+        // fix:键值有空格有bug
+        buff[strlen(buff) - 1] = '\0';// 把换行符替换结束符
+        tmp = buff;
+        while ((idx < WORD_LEN) && (word[idx] = strtok_r(tmp,",",&remain)) != NULL)
+        {
+            tmp = NULL;
+            idx++;
+        }
+    }
+    // printf("==%s==%s==%s==\n",word[1],word[2],word[3]);
+    return idx;
+}
+
+void str_2_items(char *str,kv_t *item)
+{
+    char num[10] = {0};
+    char name[MAX_NAME_LEN] = {0};
+    char *ch = str;
+
+    int other = 0;
+    int i = 0,j = 0;
+
+    while(*ch != '\0'){
+        if(*ch == ':'){
+            other = 1;
+            ch++;
+            continue;
+        }
+
+        if(other == 0){
+            num[i++] = *ch;
+        }else{
+            name[j++] = *ch;
+        }
+        ch++;
+    }
+    num[i] = '\0';
+    name[j] = '\0';
+    item->id = str_2_int(num);
+    strcpy(item->name,name);
+
+    // printf("%d,%s\n",item->id,item->name);
+}
+
+struct bplus_tree *deserialize(FILE *fp)
+{
+    // 反序列化
+    struct bplus_tree *tree;
+    char *word[WORD_LEN];
+    char line_buff[STLEN];// 用来缓存读到的每一行
+
+    int result = analy_next_line(fp,word,line_buff);// 第一行为阶数
+    int order = str_2_int(word[0]);
+    tree = bplus_tree_init(order);
+
+    linkQueue queue;
+    queue_init(&queue);
+
+    result = analy_next_line(fp,word,line_buff);// 读头节点
+    // printf("%s==%s==%s==%s==\n",word[0],word[1],word[2],word[3]);
+
+    // 处理头节点
+    if(!strncmp(word[0],"0",1)){
+        // 叶子
+        // printf("======%d=====\n",__LINE__);
+        struct bplus_leaf *leaf = leaf_new(tree->order);
+        leaf->type = BPLUS_LEAF;
+        for(int i = 0;i < result - 1;i++){
+            str_2_items(word[i+1],&leaf->items[i]);
+        }
+        leaf->kv_nums = result - 1;
+        tree->root = (struct bplus_node *)leaf;
+    }else{
+        struct bplus_non_leaf *non_leaf = non_leaf_new();
+        non_leaf->type = BPLUS_NON_LEAF;
+        non_leaf->elem_nums = result; // 真实元素个数 + 1
+        non_leaf->parent = NULL;
+        non_leaf->parent_key_idx = -1;
+        for(int i = 0;i < non_leaf->elem_nums - 1;i++){
+            non_leaf->key[i] = str_2_int(word[i+1]);
+        }
+        tree->root = (struct bplus_node *)non_leaf;
+        queue_push(&queue,&non_leaf->q_node);
+    }
+
+    // 剩余节点
+    while(!queue_isEmpty(&queue)){
+        struct bplus_non_leaf *parent = list_entry(queue_pop(&queue),struct bplus_non_leaf,q_node);
+        for(int i = 0;i < parent->elem_nums;i++){
+            result = analy_next_line(fp,word,line_buff);
+            if(!strncmp(word[0],"0",1)){
+                // 叶子节点
+                struct bplus_leaf *leaf = leaf_new(tree->order);
+                leaf->type = BPLUS_LEAF;
+                for(int i = 0;i < result - 1;i++){
+                    str_2_items(word[i+1],&leaf->items[i]);// 填充键值对
+                }
+                leaf->kv_nums = result - 1;
+                leaf->parent = parent;
+                leaf->parent_key_idx = i - 1;
+                parent->ptr[i] = (struct bplus_node *)leaf;
+                // 插入叶子节点的链表里面
+                list_insert_tail(&leaf->link,&tree->head);
+            }else{
+                // 非叶子节点
+                struct bplus_non_leaf *non_leaf = non_leaf_new();
+                non_leaf->type = BPLUS_NON_LEAF;
+                non_leaf->elem_nums = result; // 真实元素个数 + 1
+                non_leaf->parent = parent;
+                non_leaf->parent_key_idx = i - 1;
+                for(int i = 0;i < non_leaf->elem_nums - 1;i++){
+                    non_leaf->key[i] = str_2_int(word[i+1]);
+                }
+                parent->ptr[i] = (struct bplus_node *)non_leaf;
+                queue_push(&queue,&non_leaf->q_node);
+            }
+        }
+    }
+    return tree;
+    
 }

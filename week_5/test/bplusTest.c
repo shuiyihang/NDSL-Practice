@@ -1,9 +1,10 @@
 #include "bplusTree.h"
+#define FILENAME    "/home/shuiyihang/NDSL_Practice/week_5/test/info.txt"
 int main()
 {
     fprintf(stderr, "\n> B+tree set testing...\n");
 
-    struct bplus_tree *tree = bplus_tree_init(5);
+    struct bplus_tree *tree = bplus_tree_init(4);
     bplus_tree_set(tree,(kv_t){.id = 22,.name = "man"});
     bplus_tree_set(tree,(kv_t){.id = 30,.name = "ls"});
 
@@ -37,52 +38,71 @@ int main()
 
     // 打印树结构
     bplus_tree_dump(tree);
-    print_list(tree);
+    // print_list(tree);
 
-    // 验证查询键值对
-    fprintf(stderr, "\n> B+tree get testing...\n");
-    bplus_tree_get(tree, 28);
-    bplus_tree_get(tree, 19);
 
-    // 删除测试
-    fprintf(stderr, "\n> B+tree delete testing...\n");
-    bplus_tree_delete(tree,26);
-    bplus_tree_delete(tree,27);
-    bplus_tree_delete(tree,20);
-    bplus_tree_delete(tree,23);
-    bplus_tree_delete(tree,18);
-    bplus_tree_delete(tree,21);
-    bplus_tree_delete(tree,10);
-    bplus_tree_delete(tree,28);
-    bplus_tree_delete(tree,38);
+    
+    // // 验证查询键值对
+    // fprintf(stderr, "\n> B+tree get testing...\n");
+    // bplus_tree_get(tree, 28);
+    // bplus_tree_get(tree, 19);
 
-    // 打印树结构
+    // // 删除测试
+    // fprintf(stderr, "\n> B+tree delete testing...\n");
+    // bplus_tree_delete(tree,26);
+    // bplus_tree_delete(tree,27);
+    // bplus_tree_delete(tree,20);
+    // bplus_tree_delete(tree,23);
+    // bplus_tree_delete(tree,18);
+    // bplus_tree_delete(tree,21);
+    // bplus_tree_delete(tree,10);
+    // bplus_tree_delete(tree,28);
+    // bplus_tree_delete(tree,38);
+
+    // // 打印树结构
+    // bplus_tree_dump(tree);
+    // print_list(tree);
+
+
+    // bplus_tree_delete(tree,30);
+    // bplus_tree_delete(tree,22);
+    // bplus_tree_delete(tree,24);
+    // bplus_tree_delete(tree,19);
+    // bplus_tree_delete(tree,16);
+    // bplus_tree_delete(tree,33);
+    // bplus_tree_delete(tree,35);
+    // bplus_tree_delete(tree,25);
+
+
+    // fprintf(stderr, "\n> B+tree repeat set testing...\n");
+
+    // bplus_tree_get(tree,13);
+    // bplus_tree_set_force(tree,(kv_t){.id = 13,.name = "make"});
+    // bplus_tree_get(tree,13);
+
+    // // 全部删除
+    // bplus_tree_delete(tree,13);
+    // bplus_tree_delete(tree,32);
+
+    // bplus_tree_get(tree,31);
+
+    fprintf(stderr, "\n> serialize testing...\n");
+    FILE* fp = fopen(FILENAME,"w+");
+    serialize(tree,fp);
+    fclose(fp);
+    bplus_tree_free(tree);
+    
+    fprintf(stderr, "\n> deserialize testing...\n");
+    // 反序列化还原一棵树
+    fp = fopen(FILENAME,"r");
+    // assert(fp != NULL);
+    // fseek(fp,0L,SEEK_SET);
+    tree = deserialize(fp);
+    fclose(fp);
     bplus_tree_dump(tree);
     print_list(tree);
-
-
-    bplus_tree_delete(tree,30);
-    bplus_tree_delete(tree,22);
-    bplus_tree_delete(tree,24);
-    bplus_tree_delete(tree,19);
-    bplus_tree_delete(tree,16);
-    bplus_tree_delete(tree,33);
-    bplus_tree_delete(tree,35);
-    bplus_tree_delete(tree,25);
-
-
-    fprintf(stderr, "\n> B+tree repeat set testing...\n");
-
-    bplus_tree_get(tree,13);
-    bplus_tree_set_force(tree,(kv_t){.id = 13,.name = "make"});
-    bplus_tree_get(tree,13);
-
-    // 全部删除
-    bplus_tree_delete(tree,13);
-    bplus_tree_delete(tree,32);
-
-    bplus_tree_get(tree,31);
-
+    
+    bplus_tree_get(tree, 18);
     bplus_tree_free(tree);
     return 0;
 }

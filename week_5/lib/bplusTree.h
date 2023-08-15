@@ -11,6 +11,8 @@
 #define BPLUS_MAX_LEVEL   20
 
 
+#define STLEN   1024
+#define WORD_LEN    31// 1 + max order
 // #define _TRACE_DEBUG
 
 #define list_entry(ptr, type, member) \
@@ -55,13 +57,51 @@ static inline void list_add_front(link_dlist node,link_dlist obj)
 {
     __list_add(node,obj->prev,obj);
 }
+// 插到obj节点后面
 static inline void list_add_back(link_dlist node,link_dlist obj)
 {
     __list_add(node,obj,obj->next);
 }
 
+// 尾插
 
+static inline void list_insert_tail(link_dlist node,link_dlist obj)
+{
+    link_dlist tail = obj->prev;
+    list_add_back(node,tail);
+}
 
+// 链队列
+typedef struct{
+    struct node *front,*rear;
+}linkQueue;
+
+void queue_init(linkQueue *q)
+{
+    q->front = q->rear = (struct node *)malloc(sizeof(struct node));
+    q->front->next = NULL;
+}
+
+int queue_isEmpty(linkQueue *q)
+{
+    return q->front == q->rear;
+}
+
+void queue_push(linkQueue *q,struct node *elem)
+{
+    q->rear->next = elem;
+    q->rear = elem;
+}
+
+struct node* queue_pop(linkQueue *q)
+{
+    if(q->rear == q->front)return NULL;
+    struct node* tmp = q->front->next;
+    q->front->next = tmp->next;
+    if(tmp == q->rear)q->rear = q->front;
+
+    return tmp;
+}
 
 enum{
     BPLUS_LEAF,
@@ -87,6 +127,8 @@ struct bplus_node
 
     // 父节点中第几个关键字的索引节点
     int parent_key_idx;
+
+    struct node q_node;// 序列化时候的入队节点
 };
 
 
@@ -102,6 +144,8 @@ struct bplus_non_leaf
 
     // 父节点中第几个关键字的索引节点
     int parent_key_idx;
+
+    struct node q_node;// 序列化时候的入队节点
 
     int key[BPLUS_MAX_ORDER-1];
 
@@ -120,6 +164,8 @@ struct bplus_leaf
 
     // 父节点中第几个关键字的索引节点
     int parent_key_idx;
+
+    struct node q_node;// 序列化时候的入队节点
 
     struct node link;
     // 节点包含信息
@@ -157,4 +203,7 @@ void bplus_tree_free(struct bplus_tree *tree);
 int bplus_tree_delete(struct bplus_tree *tree, int key);
 
 void print_list(struct bplus_tree *tree);
+
+void serialize(struct bplus_tree *tree,FILE *fp);
+struct bplus_tree *deserialize(FILE *fp);
 #endif
