@@ -79,24 +79,24 @@ typedef struct{
     struct node *front,*rear;
 }linkQueue;
 
-void queue_init(linkQueue *q)
+static inline void queue_init(linkQueue *q)
 {
     q->front = q->rear = (struct node *)malloc(sizeof(struct node));
     q->front->next = NULL;
 }
 
-int queue_isEmpty(linkQueue *q)
+static inline int queue_isEmpty(linkQueue *q)
 {
     return q->front == q->rear;
 }
 
-void queue_push(linkQueue *q,struct node *elem)
+static inline void queue_push(linkQueue *q,struct node *elem)
 {
     q->rear->next = elem;
     q->rear = elem;
 }
 
-struct node* queue_pop(linkQueue *q)
+static inline struct node* queue_pop(linkQueue *q)
 {
     if(q->rear == q->front)return NULL;
     struct node* tmp = q->front->next;
@@ -209,4 +209,5 @@ void print_list(struct bplus_tree *tree);
 
 void serialize(struct bplus_tree *tree,FILE *fp);
 struct bplus_tree *deserialize(FILE *fp);
+int str_2_int(char *str);
 #endif

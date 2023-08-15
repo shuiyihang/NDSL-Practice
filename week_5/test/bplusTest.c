@@ -151,10 +151,29 @@ void base_operation_test()
     bplus_tree_free(tree);
 }
 
+void cmd_interface_test(int argc,char* argv[])
+{
+    struct bplus_tree *tree = bplus_tree_init(5);
+    FILE* fp = fopen(FILENAME,"r");
+    if(fp) tree = deserialize(fp);
+    fclose(fp);
 
-int main()
+    extern int cmd_interface(struct bplus_tree *tree,int argc,char* argv[]);
+
+    cmd_interface(tree,argc,argv);
+
+    fp = fopen(FILENAME,"w+");
+    serialize(tree,fp);
+    fclose(fp);
+    bplus_tree_free(tree);
+
+}
+
+
+int main(int argc,char* argv[])
 {
     // do_func(big_data_test);
-    do_func(base_operation_test);
+    // do_func(base_operation_test);
+    cmd_interface_test(argc,argv);
     return 0;
 }
