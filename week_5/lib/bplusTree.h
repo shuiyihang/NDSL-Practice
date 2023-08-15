@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #define MAX_NAME_LEN   10
 
 #define BPLUS_MAX_ORDER   32
@@ -14,6 +15,8 @@
 #define STLEN   1024
 #define WORD_LEN    31// 1 + max order
 // #define _TRACE_DEBUG
+
+// #define LOG_DEBUG
 
 #define list_entry(ptr, type, member) \
         ((type *)((char *)(ptr) - (size_t)(&((type *)0)->member)))
@@ -196,7 +199,7 @@ static inline int is_leaf(struct bplus_node *node)
 struct bplus_tree *bplus_tree_init(int order);
 int bplus_tree_set(struct bplus_tree *tree, kv_t item);
 int bplus_tree_set_force(struct bplus_tree *tree, kv_t item);// 存在替换
-void bplus_tree_dump(struct bplus_tree *tree);
+void bplus_tree_dump(struct bplus_tree *tree,FILE *fp);
 void bplus_tree_get(struct bplus_tree *tree, int key);
 void bplus_tree_free(struct bplus_tree *tree);
 

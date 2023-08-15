@@ -246,7 +246,6 @@ static int non_leaf_split_right(struct bplus_non_leaf *node,
 {
     // 填充右节点
     int split_key;
-    node->elem_nums = split + 1;
 
     split_key = node->key[split];// idx = split的右指针下标是split+1,这个后继作为右边节点的第一个指针指向的节点。
 
@@ -286,6 +285,7 @@ static int non_leaf_split_right(struct bplus_non_leaf *node,
     right->ptr[j+1] = r_ch;
     right->ptr[j+1]->parent = right;
     right->ptr[j+1]->parent_key_idx = j;
+    node->elem_nums = split + 1;
     return split_key;
 }
 
@@ -328,7 +328,12 @@ static int non_leaf_insert(struct bplus_tree *tree,struct bplus_non_leaf *node,s
         if(insert < split){
             split_key = non_leaf_split_left(node,sibling,l_ch,r_ch,key,insert,split);
         }else if(insert > split){
+            // printf("==%d,%d===%d\n",split,insert,__LINE__);
             split_key = non_leaf_split_right(node,sibling,l_ch,r_ch,key,insert,split);
+            // for (size_t i = 0; i < sibling->elem_nums - 1; i++)
+            // {
+            //     printf("==%d===\n",sibling->key[i]);
+            // }
         }else{
             // printf("==%d,%d===\n",node->elem_nums,insert);
             split_key = non_leaf_split_right2(node,sibling,l_ch,r_ch,key,insert,split);
@@ -382,6 +387,9 @@ static int leaf_insert(struct bplus_tree *tree,struct bplus_leaf *leaf,kv_t item
             leaf->items[pos] = item;
             return 0;
         }else{
+#ifdef _TRACE_DEBUG
+            printf("kv has exist!\n");
+#endif
             return -1;// 已经存在
         }
     }
@@ -826,26 +834,27 @@ int bplus_tree_delete(struct bplus_tree *tree, int key)
 
 
 
-static void key_print(struct bplus_node *node)
+static void key_print(struct bplus_node *node,FILE *fp)
 {
     int i;
     if (is_leaf(node)) {
             struct bplus_leaf *leaf = (struct bplus_leaf *)node;
-            printf("leaf:");
+            fprintf(fp,"leaf:");
             for (i = 0; i < leaf->kv_nums; i++) {
-                    printf(" %d", leaf->items[i].id);
+                fprintf(fp," %d",leaf->items[i].id);
             }
     } else {
             struct bplus_non_leaf *non_leaf = (struct bplus_non_leaf *)node;
-            printf("node:");
+            fprintf(fp,"node:");
             for (i = 0; i < non_leaf->elem_nums - 1; i++) {
-                    printf(" %d", non_leaf->key[i]);
+                fprintf(fp," %d",non_leaf->key[i]);
             }
     }
-    printf("\n");
+    fprintf(fp,"\n");
 }
-void bplus_tree_dump(struct bplus_tree *tree)
+void bplus_tree_dump(struct bplus_tree *tree,FILE *fp)
 {
+    if(!fp)fp = stderr;
     struct node_backlog {
         struct bplus_node *node;
         int next_sub_idx;
@@ -879,16 +888,16 @@ void bplus_tree_dump(struct bplus_tree *tree)
                             int i;
                             for (i = 1; i < level; i++) {
                                     if (i == level - 1) {
-                                            printf("%-8s", "+-------");
+                                            fprintf(fp,"%-8s","+-------");
                                     } else {
                                             if (nbl_stack[i - 1].node != NULL) {
-                                                    printf("%-8s", "|");
+                                                    fprintf(fp,"%-8s","|");
                                             } else {
-                                                    printf("%-8s", " ");
+                                                    fprintf(fp,"%-8s"," ");
                                             }
                                     }
                             }
-                            key_print(node);
+                            key_print(node,fp);
                     }
 
                     /* Move deep down */
@@ -938,17 +947,19 @@ void print_list(struct bplus_tree *tree)
     
     fprintf(stderr, "\n> B+tree sequence print...\n");
     
+    int num = 0;
     while (node != &tree->head)
     {
         leaf = list_entry(node,struct bplus_leaf,link);
         for(int i=0; i<leaf->kv_nums;i++)
         {
             printf("%d ",leaf->items[i].id);
+            num++;
         }
         node = node->next;
     }
     
-    printf("\n\n");
+    printf("total:%d\n\n",num);
 }
 
 
