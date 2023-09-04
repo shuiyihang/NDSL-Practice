@@ -8,12 +8,12 @@
 #include <time.h>
 #define MAX_NAME_LEN   10
 
-#define BPLUS_MAX_ORDER   32
+#define BPLUS_MAX_ORDER   100
 #define BPLUS_MAX_LEVEL   20
 
 
 #define STLEN   1024
-#define WORD_LEN    31// 1 + max order
+#define WORD_LEN    BPLUS_MAX_ORDER + 1// 1 + max order
 // #define _TRACE_DEBUG
 
 // #define LOG_DEBUG

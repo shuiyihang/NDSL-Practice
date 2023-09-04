@@ -1,0 +1,1 @@
+valgrind --tool=memcheck --leak-check=full --show-reachable=yes /home/shuiyihang/NDSL_Practice/week_5/build/test/bplusTree

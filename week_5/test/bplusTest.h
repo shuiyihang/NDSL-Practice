@@ -2,6 +2,7 @@
 #define __BPLUS_TEST_H
 
 #include <stdio.h>
+#include <sys/time.h>
 #define FILENAME    "/home/shuiyihang/NDSL_Practice/week_5/test/info.txt"
 
 #define do_func(name)   {   \

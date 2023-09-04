@@ -1,16 +1,21 @@
 #include "bplusTree.h"
 #include "bplusTest.h"
 
-void big_data_test()
+void big_data_test(int order)
 {
-    #define DATA_RANGE  3000
+    #define DATA_RANGE  100000
     srand((unsigned int)time(0));
     fprintf(stderr, "\n> big data set testing...\n");
 
-    clock_t begin = clock();
 
-    struct bplus_tree *tree = bplus_tree_init(5);
+    struct timeval begin,end;
 
+
+    struct bplus_tree *tree = bplus_tree_init(order);
+
+
+    double build_t = 0,deser_t = 0;
+    double time_use = 0;(end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec)/1000000.0;
 #ifdef LOG_DEBUG
     FILE* log_txt = fopen("log.txt","w+");
 #endif
@@ -22,6 +27,8 @@ void big_data_test()
         key_val.name[1] = rand()%26 + 'a';
         key_val.name[2] = rand()%26 + 'a';
         key_val.name[3] = '\0';
+
+        gettimeofday(&begin,NULL);
 #ifdef LOG_DEBUG
         fprintf(log_txt,"insert:%d,%s\n",key_val.id,key_val.name);
         bplus_tree_set(tree,key_val);
@@ -31,15 +38,19 @@ void big_data_test()
 
         bplus_tree_set(tree,key_val);
 #endif
+        gettimeofday(&end,NULL);
+        time_use = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec)/1000000.0;
+        build_t += time_use;
     }
 
 #ifdef LOG_DEBUG
     fclose(log_txt);
 #endif
 
-    clock_t end = clock(); 
+    
 
-    fprintf(stderr, "\n> build b+tree spend in %.5f secs\n",(double)(end - begin) / CLOCKS_PER_SEC);
+    
+    // fprintf(stderr, "\n> build b+tree spend in %.6f secs\n",time_use);
     // 打印树结构
     // bplus_tree_dump(tree,NULL);
     // print_list(tree);
@@ -55,18 +66,63 @@ void big_data_test()
 
     // 反序列化还原一棵树
     fprintf(stderr, "\n> deserialize testing...\n");
-    begin = clock();
+    gettimeofday(&begin,NULL);
     fp = fopen(FILENAME,"r");
     tree = deserialize(fp);
     fclose(fp);
-    end = clock();
-    fprintf(stderr, "\n> deserialize build b+tree spend in %.5f secs\n",(double)(end - begin) / CLOCKS_PER_SEC);
+    gettimeofday(&end,NULL);
+    deser_t = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec)/1000000.0;
+    // fprintf(stderr, "\n> deserialize build b+tree spend in %.5f secs\n",time_use);
 
-    bplus_tree_dump(tree,NULL);
+    // bplus_tree_dump(tree,NULL);
     // print_list(tree);
 
+
+
+    // 自动化测试 插入， 删除， 查询的平均时间
+    double insert_t = 0,del_t = 0, query_t = 0;
+
+    #define AVG_NUMS    25
+    kv_t key_val;
+    for(int i = 0; i < AVG_NUMS;i++){
+        
+        key_val.id = rand()%(DATA_RANGE * 2) + 3;
+        key_val.name[0] = rand()%26 + 'a';
+        key_val.name[1] = rand()%26 + 'a';
+
+        gettimeofday(&begin,NULL);
+        bplus_tree_set(tree,key_val);
+        gettimeofday(&end,NULL);
+        time_use = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec)/1000000.0;
+        insert_t += time_use;
+    }
+
+    for(int i = 0; i < AVG_NUMS;i++){
+        
+        key_val.id = rand()%(DATA_RANGE * 2) + 3;
+
+        gettimeofday(&begin,NULL);
+        bplus_tree_get(tree,key_val.id);
+        gettimeofday(&end,NULL);
+        time_use = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec)/1000000.0;
+        query_t += time_use;
+    }
+
+    for(int i = 0; i < AVG_NUMS;i++){
+        
+        key_val.id = rand()%(DATA_RANGE * 2) + 3;
+
+        gettimeofday(&begin,NULL);
+        bplus_tree_delete(tree,key_val.id);
+        gettimeofday(&end,NULL);
+        time_use = (end.tv_sec - begin.tv_sec) + (end.tv_usec - begin.tv_usec)/1000000.0;
+        del_t += time_use;
+    }
+
+    fprintf(stderr, "\n> order:%d||build: %.6f||deser_t: %.6f||insert: %.8f||del: %.8f||query: %.8f secs\n",order,build_t,deser_t,insert_t/AVG_NUMS,del_t/AVG_NUMS,query_t/AVG_NUMS);
     bplus_tree_free(tree);
 }
+
 
 void base_operation_test()
 {
@@ -153,7 +209,7 @@ void base_operation_test()
 
 void cmd_interface_test(int argc,char* argv[])
 {
-    struct bplus_tree *tree = bplus_tree_init(5);
+    struct bplus_tree *tree = NULL;
     FILE* fp = fopen(FILENAME,"r");
     if(fp) tree = deserialize(fp);
     fclose(fp);
@@ -172,8 +228,16 @@ void cmd_interface_test(int argc,char* argv[])
 
 int main(int argc,char* argv[])
 {
-    // do_func(big_data_test);
     // do_func(base_operation_test);
-    cmd_interface_test(argc,argv);
+    // cmd_interface_test(argc,argv);
+    big_data_test(5);
+    big_data_test(15);
+    big_data_test(25);
+    big_data_test(35);
+    big_data_test(45);
+    big_data_test(55);
+    big_data_test(65);
+    big_data_test(75);
+    big_data_test(85);
     return 0;
 }

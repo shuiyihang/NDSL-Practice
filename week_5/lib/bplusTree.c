@@ -22,6 +22,7 @@ struct bplus_tree *bplus_tree_init(int order)
 {
     struct bplus_tree *tree = calloc(1,sizeof(struct bplus_tree));
     if(tree){
+        order = order > (WORD_LEN-1)?(WORD_LEN-1):order;
         tree->order = order;
         tree->root = NULL;
         tree->item_size = sizeof(kv_t);
@@ -606,7 +607,7 @@ static void non_leaf_borrow_from_left(struct bplus_non_leaf *l_sbl,struct bplus_
 static void non_leaf_borrow_from_right(struct bplus_non_leaf *r_sbl,struct bplus_non_leaf *node,int parent_idx)
 {
     node->key[node->elem_nums - 1] = node->parent->key[parent_idx];// parent_idx为右节点的idx
-    node->parent->key[parent_idx] = r_sbl->key[0];
+    node->parent->key[parent_idx] = r_sbl->key[0];// 兄弟节点key上移
 
     node->ptr[node->elem_nums] = r_sbl->ptr[0];
     node->ptr[node->elem_nums]->parent = node;
@@ -615,7 +616,7 @@ static void non_leaf_borrow_from_right(struct bplus_non_leaf *r_sbl,struct bplus
 
     memmove(r_sbl->key,r_sbl->key+1,sizeof(r_sbl->key[0])*(r_sbl->elem_nums - 2));
 
-    for(int i = 0;i<r_sbl->elem_nums-1;i++){
+    for(int i = 0;i<r_sbl->elem_nums-1;i++){// 对应key上移，指针全部左移
         r_sbl->ptr[i] = r_sbl->ptr[i+1];
         r_sbl->ptr[i]->parent_key_idx = i-1;
     }
@@ -666,7 +667,6 @@ static void non_leaf_merge_from_right(struct bplus_non_leaf *r_sbl,struct bplus_
 static void non_leaf_remove(struct bplus_tree *tree,struct bplus_non_leaf *non_leaf,int remove)
 {
     if(non_leaf->elem_nums <= (tree->order + 1)/2){
-        // todo: 增加各层的链表，方便获取兄弟
         struct bplus_non_leaf *parent = non_leaf->parent;
         if(parent != NULL){
             int i = non_leaf->parent_key_idx;
@@ -699,7 +699,7 @@ static void non_leaf_remove(struct bplus_tree *tree,struct bplus_non_leaf *non_l
                     printf("========%d=======\n",__LINE__);
                 #endif
                     non_leaf_merge_from_right(r_sbl,non_leaf,i+1);
-                    non_leaf_remove(tree,parent,i);
+                    non_leaf_remove(tree,parent,i+1);
                 }
             }
 
@@ -867,12 +867,9 @@ void bplus_tree_dump(struct bplus_tree *tree,FILE *fp)
 
     for (; ;) {
             if (node != NULL) {
-                    /* non-zero needs backward and zero does not */
                     int sub_idx = p_nbl != NULL ? p_nbl->next_sub_idx : 0;
-                    /* Reset each loop */
                     p_nbl = NULL;
 
-                    /* Backlog the path */
                     if (is_leaf(node) || sub_idx + 1 >= children(node)) {
                             top->node = NULL;
                             top->next_sub_idx = 0;
@@ -883,7 +880,6 @@ void bplus_tree_dump(struct bplus_tree *tree,FILE *fp)
                     top++;
                     level++;
 
-                    /* Draw the whole node when the first entry is passed through */
                     if (sub_idx == 0) {
                             int i;
                             for (i = 1; i < level; i++) {
@@ -900,12 +896,10 @@ void bplus_tree_dump(struct bplus_tree *tree,FILE *fp)
                             key_print(node,fp);
                     }
 
-                    /* Move deep down */
                     node = is_leaf(node) ? NULL : ((struct bplus_non_leaf *) node)->ptr[sub_idx];
             } else {
                     p_nbl = top == nbl_stack ? NULL : --top;
                     if (p_nbl == NULL) {
-                            /* End of traversal */
                             break;
                     }
                     node = p_nbl->node;
@@ -924,7 +918,7 @@ static void node_free(struct bplus_node *node)
         free(non_leaf);
     }else{
         struct bplus_leaf *leaf = (struct bplus_leaf *)node;
-        free(leaf);// free的原理是挨着的也被清空了?
+        free(leaf);
     }
     
 }
@@ -1001,7 +995,7 @@ void serialize(struct bplus_tree *tree,FILE *fp)
 
     fprintf(fp,"%d\n",tree->order);// 第一行记录阶数
 
-    queue_init(&queue);
+    queue_init(&queue);// 带头结点的队列
     queue_push(&queue,&node->q_node);
     while (!queue_isEmpty(&queue))
     {
@@ -1027,7 +1021,7 @@ void serialize(struct bplus_tree *tree,FILE *fp)
             }
         }
     }
-    
+    free(queue.front);
     
 }
 
@@ -1159,6 +1153,6 @@ struct bplus_tree *deserialize(FILE *fp)
             }
         }
     }
+    free(queue.front);
     return tree;
-    
 }
